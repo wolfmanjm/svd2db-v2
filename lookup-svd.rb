@@ -31,9 +31,9 @@ OptionParser.new do |opts|
     options[:asm] = v
   end
 
-  # opts.on("--forth", "generate forth output") do |v|
-  #   options[:forth] = v
-  # end
+  opts.on("--forth", "generate forth output") do |v|
+    options[:forth] = v
+  end
 
   opts.on("-d", "--database FILENAME", "Use this database [otherwise opens a default]") do |v|
     options[:database] = v
@@ -205,6 +205,62 @@ if options[:asm]
 
 	exit
 end
+
+# create the register structure for forth
+if options[:forth]
+	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	if pr.nil?
+		puts "Unknown peripheral #{options[:peripheral]}"
+		exit
+	end
+
+	regs = pr.registers_dataset
+	if regs.count == 0
+		puts "No registers found for #{options[:peripheral]} Base address: #{pr.base_address}. try 0"
+		exit
+	end
+
+	# create registers
+	# use as USART1 _usCR1 leaves address of CR1 register for USART1 on the stack
+	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}"
+	puts "  registers"
+	prefix = pr.name.downcase[0..1]
+	addr = 0
+
+	regs.each do |r|
+		a = r.address_offset.to_i(16)
+		if a != addr
+			puts "    drop $#{a.to_s(16)}"
+			addr = a
+		end
+		addr += 4
+		puts "    reg _#{prefix}#{r.name}"
+
+	end
+
+	puts "  end-registers"
+
+	# create constants for the bit fields
+	# m_ use with modify-reg ( value mask pos reg -- )
+	# ie 5 m_CR2_TSER SPI1 _spCR2 modify-reg
+	# b_ use eith bic! or bis!
+	# ie b_CR1_SSI SPI2 _sCR1 bis!
+	regs.each do |r|
+		puts "\n\\ Bitfields for #{r.name}"
+		r.fields_dataset.order(:name).each do |f|
+			bf = "#{r.name}_#{f.name}"
+	        if f.num_bits == 1
+				puts "  #{f.bit_offset} bit constant b_#{bf}"
+	        else
+	            mask = ((2**f.num_bits) - 1) << f.bit_offset
+				puts "  $#{sprintf("%08X", mask)} #{f.bit_offset} 2constant m_#{bf}"
+	        end
+		end
+	end
+
+	exit
+end
+
 
 # just list all the fields
 pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
