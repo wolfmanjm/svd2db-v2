@@ -9,8 +9,9 @@ def convert_bitrange(br)
     [lr, (hr-lr)+1]
 end
 
-#xml = 'RP2350-orig.svd'
-xml = 'STM32H750x.svd'
+xml = 'RP2350-orig.svd'
+#xml = 'STM32H750x.svd'
+MCUNAME = 'RP2350'
 
 # extract all the peripherals that derive from another
 @derives = {}
@@ -151,7 +152,7 @@ end
 
 
 def populate_db(arr)
-	mpu = Mpu.create(name: 'STM32H750')
+	mpu = Mpu.create(name: MCUNAME)
 
 	arr.each do |p|
 		$stderr.puts "Creating Peripheral: #{p[:peripheral]}"

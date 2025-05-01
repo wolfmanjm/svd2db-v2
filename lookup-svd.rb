@@ -195,6 +195,10 @@ if options[:asm]
  			res= pr.derived_from.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
  			puts "@ Has the same registers as #{pr.derived_from.name}"
  		end
+ 		if res.nil? or res.count == 0
+ 			puts "@ no matching registers to #{options[:register]}"
+ 			exit
+ 		end
 	end
 	if res.count > 1
 		puts "more than one match for the register..."
