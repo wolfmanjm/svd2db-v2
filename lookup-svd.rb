@@ -91,6 +91,7 @@ end
 
 class Peripheral < Sequel::Model
   one_to_many :registers
+  many_to_one :derived_from, key: :derived_from_id, class: self
 end
 
 class Register < Sequel::Model
@@ -147,7 +148,12 @@ if options[:list_registers]
 
 	res = pr.registers_dataset.order(:name)
 	if res.empty?
-		puts "try #{options[:peripheral].chop}0"
+ 		if pr.derived_from.nil?
+			puts "#{options[:peripheral]} did not have any registers"
+ 		else
+ 			res= pr.derived_from.registers_dataset.order(:name)
+ 			puts "Has the same registers as #{pr.derived_from.name}"
+ 		end
 	end
 	res.each do |r|
 		s = r.name
@@ -182,8 +188,13 @@ if options[:asm]
 
 	res = pr.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
 	if res.count == 0
-		puts "No match for the register #{options[:register]}"
-		exit
+ 		if pr.derived_from.nil?
+			puts "No match for the register #{options[:register]}"
+			exit
+ 		else
+ 			res= pr.derived_from.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
+ 			puts "@ Has the same registers as #{pr.derived_from.name}"
+ 		end
 	end
 	if res.count > 1
 		puts "more than one match for the register..."
@@ -211,19 +222,23 @@ end
 if options[:forth]
 	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
 	if pr.nil?
-		puts "Unknown peripheral #{options[:peripheral]}"
+		puts "\\ Unknown peripheral #{options[:peripheral]}"
 		exit
 	end
 
+	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}"
 	regs = pr.registers_dataset
 	if regs.count == 0
-		puts "No registers found for #{options[:peripheral]} Base address: #{pr.base_address}. try 0"
-		exit
+		if pr.derived_from.nil?
+			puts "\\ No registers found for #{options[:peripheral]} Base address: #{pr.base_address}."
+ 		else
+ 			puts "\\ Has the same registers as #{pr.derived_from.name}"
+ 		end
+			exit
 	end
 
 	# create registers
 	# use as USART1 _usCR1 leaves address of CR1 register for USART1 on the stack
-	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}"
 	puts "  registers"
 	prefix = pr.name.downcase[0..1]
 	addr = 0
@@ -280,8 +295,12 @@ end
 
 res = pr.registers_dataset.where(Sequel.ilike(:name, "%#{reg}"))
 if res.count == 0
-	puts "No match for the register #{options[:register]}"
-	exit
+	if pr.derived_from.nil?
+		puts "No match for the register #{options[:register]}"
+		exit
+	end
+	res = pr.derived_from.registers_dataset.where(Sequel.ilike(:name, "%#{reg}"))
+	puts "Has the same registers as #{pr.derived_from.name}"
 end
 
 res.each do |r|

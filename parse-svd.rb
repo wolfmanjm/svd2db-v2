@@ -12,8 +12,17 @@ end
 #xml = 'RP2350-orig.svd'
 xml = 'STM32H750x.svd'
 
-#puts Ox.load(xml, mode: :hash)
+# extract all the peripherals that derive from another
+@derives = {}
+doc = Ox.load_file(xml)
+doc.device.peripherals.locate('peripheral[@derivedFrom]').each do |n|
+	a = n.locate('name/?[0]')[0]
+	b = n.attributes[:derivedFrom]
+	@derives[a] = b
+end
+
 h = Ox.load_file(xml, mode: :hash_no_attrs)
+
 $stderr.puts "CPU: #{h[:device][:name]}"
 
 # build the peripheral array
@@ -64,7 +73,12 @@ begin
 								   reset_value: regs[:resetValue], description: regs[:description]} }
 			end
 		else
-			$stderr.puts "  #{th} has no registers"
+			derived_from = @derives[p[:name]]
+			if derived_from.nil?
+				$stderr.puts "  #{th} has no registers"
+			else
+				th[:derived_from] = derived_from
+			end
 		end
 		pa << th
 	end
@@ -92,6 +106,7 @@ def create_db
 	DB.create_table(:peripherals) do
 	  primary_key :id
 	  foreign_key :mpu_id
+	  foreign_key :derived_from_id
 	  String :name, null: false, unique: true
 	  String :base_address
 	  String :description
@@ -124,6 +139,7 @@ end
 
 class Peripheral < Sequel::Model
   one_to_many :registers
+  many_to_one :derived_from, key: :derived_from_id, class: self
 end
 
 class Register < Sequel::Model
@@ -140,17 +156,28 @@ def populate_db(arr)
 	arr.each do |p|
 		$stderr.puts "Creating Peripheral: #{p[:peripheral]}"
 		px = mpu.add_peripheral(p[:peripheral])
-		p[:registers].each do |r|
-			#puts "  Creating Register: #{r[:register]}"
-			rx = px.add_register(r[:register])
-			if not r[:fields].nil?
-				r[:fields].each do |f|
-					#puts "    Creating Fields: #{f}"
-					rx.add_field(f)
+		if p[:derived_from].nil?
+			p[:registers].each do |r|
+				#puts "  Creating Register: #{r[:register]}"
+				rx = px.add_register(r[:register])
+				if not r[:fields].nil?
+					r[:fields].each do |f|
+						#puts "    Creating Fields: #{f}"
+						rx.add_field(f)
+					end
+				else
+					$stderr.puts "no fields in #{r[:register]}"
 				end
-			else
-				$stderr.puts "no fields in #{r[:register]}"
 			end
+		else
+			# we derive the registers from the specified peripheral
+			px.derived_from = Peripheral[name: p[:derived_from]]
+			if px.derived_from.nil?
+				$stderr.puts "ERROR: could not derived from #{p[:derived_from]}"
+			else
+				px.save
+			end
+
 		end
 	end
 
@@ -163,6 +190,10 @@ mpu = populate_db(pa)
 # def dump_db(mpu)
 # 	mpu.peripherals.each do |pe|
 # 		p pe
+# 		unless pe.derived_from.nil?
+# 			pe= pe.derived_from
+# 		end
+
 # 		pe.registers.each do |r|
 # 			p r
 # 			r.fields.each { |f| p f }
