@@ -78,6 +78,7 @@ else
 end
 
 if options[:verbose]
+	puts "Using databse file #{dbfile}"
 	DB = Sequel.sqlite(dbfile, {readonly: true, loggers: [Logger.new($stderr)]})
 else
 	DB = Sequel.sqlite(dbfile, {readonly: true})
