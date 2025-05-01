@@ -289,7 +289,7 @@ res.each do |r|
 		desc = " - #{r.description}"
 	end
 
-	puts "Register #{r.name} offset: #{r.address_offset}, reset: #{r.reset_value} #{desc}"
+	puts "\nRegister #{r.name} offset: #{r.address_offset}, reset: #{r.reset_value} #{desc}"
 
 	r.fields_dataset.order(:bit_offset).each do |f|
 		if options[:description] and not f.description.nil?
