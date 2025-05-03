@@ -184,7 +184,7 @@ if options[:asm]
 		exit
 	end
 
-	puts ".equ #{pr.name}, #{pr.base_address}"
+	puts ".equ #{pr.name}_BASE, #{pr.base_address}"
 
 	res = pr.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
 	if res.count == 0
