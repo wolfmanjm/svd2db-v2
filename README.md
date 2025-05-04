@@ -38,4 +38,6 @@ search up until it finds a `default-svd.db` to use.
 In the sublime-text-plugins directory is a plugin `svd_query.py` for sublimetext 4 which will lookup
 peripherals and registers from the SVD database and insert code friendly .equ into your assembler source code for the register and its bit fields. The plugin will call `lookup-svd` which should be on your PATH.
 
+Also the plugin `insert_command_output.py` found in the sublime-text-plugins directory also needs to be installed into sublime (basically copy them to ~/.config/sublime-text/Packages/User/).
+
 (A plugin for the original svd2db database schema is in sublime-text-plugins/old_svd_query.py)
