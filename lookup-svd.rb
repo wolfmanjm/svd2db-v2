@@ -11,6 +11,10 @@ OptionParser.new do |opts|
     options[:verbose] = v
   end
 
+  opts.on("-c", "--curdir DIR", "set the current directory") do |v|
+    options[:directory] = v
+  end
+
   opts.on("--dump", "dump the database") do |v|
     options[:dump] = v
   end
@@ -70,15 +74,20 @@ if options[:database]
 	dbfile = options[:database]
 else
 	# find a database
-	dbfile = find_file_upwards('default-svd.db')
+	if options[:directory].nil?
+		cdir = Dir.pwd
+	else
+		cdir = options[:directory]
+	end
+	dbfile = find_file_upwards('default-svd.db', cdir)
 	if dbfile.nil?
-		puts "No database found"
+		puts "No database found starting at #{cdir}"
 		exit 1
 	end
 end
 
 if options[:verbose]
-	puts "Using databse file #{dbfile}"
+	puts "Using database file #{dbfile}"
 	DB = Sequel.sqlite(dbfile, {readonly: true, loggers: [Logger.new($stderr)]})
 else
 	DB = Sequel.sqlite(dbfile, {readonly: true})

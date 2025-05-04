@@ -42,25 +42,35 @@ class SvdQueryCommand(sublime_plugin.TextCommand):
         return
 
     def get_peripherals(self):
-        pl = self.run_command('lookup-svd -l')
+        pl = self.run_command(f'{self.command} -l')
         if pl is not None:
             return pl[1:]
         else:
-            sublime.status_message(f'command failed: {pl}')
+            sublime.status_message(f'{self.command} -l command failed: {pl}')
             return None
 
     def get_registers(self, periph):
-        rl = self.run_command(f'lookup-svd -p {periph} --regs')
+        rl = self.run_command(f'{self.command} -p {periph} --regs')
         if rl is not None:
             return rl[1:]
         else:
-            sublime.status_message(f'command failed: {rl}')
+            sublime.status_message(f'{self.command} -p {periph} --regs command failed: {rl}')
             return None
 
     def get_register(self, periph, reg):
-        return self.run_command(f'lookup-svd -p {periph} -r {reg} --asm', False)
+        return self.run_command(f'{self.command} -p {periph} -r {reg} --asm', False)
 
     def run(self, edit):
+        # we need to use the current directory so we can find the correct database file
+        file_path = self.view.file_name()
+        if file_path:
+            directory = os.path.dirname(file_path)
+            # sublime.message_dialog(f"Current directory: {directory}")
+            self.command = f"lookup-svd -c {directory}"
+        else:
+            sublime.message_dialog("File must be saved to determine directory.")
+            self.command = f"lookup-svd"
+
         s = self.view.sel()
 
         # region = s[0]
@@ -110,7 +120,7 @@ class SvdQueryCommand(sublime_plugin.TextCommand):
             output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
             output_text = output.decode("utf-8")
         except subprocess.CalledProcessError as e:
-            sublime.status_message(f"Error:\n{e.output.decode('utf-8')}")
+            sublime.message_dialog(f"Error:\n{e.output.decode('utf-8')}")
             return None
 
         if as_list:
