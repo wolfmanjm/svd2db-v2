@@ -1,4 +1,6 @@
-This is based on svd2db by tp
+This is based on the excellent [svd2db](https://mecrisp-stellaris-folkdoc.sourceforge.io/svd2db-v1.html) by Terry Porter.
+
+I refactored the database to be relational which makes it about 5x smaller.
 
 You need to install ruby if not already installed and the following gems...
 
@@ -30,8 +32,10 @@ You can also create `.equ` for assembly code for the register and bitfields in t
 	    -p, --peripheral PERIPHERAL      search for this peripheral
 	    -r, --register REGISTER          search for this register
 
-If the `--database` is not specified it will look in the curernt directory and
+If the `--database` is not specified it will look in the current directory and
 search up until it finds a `default-svd.db` to use.
 
 In the sublime-text-plugins directory is a plugin `svd_query.py` for sublimetext 4 which will lookup
 peripherals and registers from the SVD database and insert code friendly .equ into your assembler source code for the register and its bit fields.
+
+(A plugin for the original svd2db database schema is in sublime-text-plugins/old_svd_query.py)
