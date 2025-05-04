@@ -1,6 +1,27 @@
 #!/usr/bin/ruby -w
 require 'ox'
 
+unless ARGV[0].nil?
+	$xml = ARGV[0]
+else
+	puts " Required input .svd file"
+	exit 1
+end
+
+# extract all the peripherals that derive from another
+@derives = {}
+doc = Ox.load_file($xml)
+doc.device.peripherals.locate('peripheral[@derivedFrom]').each do |n|
+	a = n.locate('name/?[0]')[0]
+	b = n.attributes[:derivedFrom]
+	@derives[a] = b
+end
+
+h = Ox.load_file($xml, mode: :hash_no_attrs)
+
+$stderr.puts "CPU: #{h[:device][:name]}"
+$mcuname = h[:device][:name]
+
 def convert_bitrange(br)
 	m = /\[(.*)\]/.match(br)
 	r = m[1].split(':')
@@ -8,23 +29,6 @@ def convert_bitrange(br)
 	lr = r[1].to_i
     [lr, (hr-lr)+1]
 end
-
-xml = 'RP2350-orig.svd'
-#xml = 'STM32H750x.svd'
-MCUNAME = 'RP2350'
-
-# extract all the peripherals that derive from another
-@derives = {}
-doc = Ox.load_file(xml)
-doc.device.peripherals.locate('peripheral[@derivedFrom]').each do |n|
-	a = n.locate('name/?[0]')[0]
-	b = n.attributes[:derivedFrom]
-	@derives[a] = b
-end
-
-h = Ox.load_file(xml, mode: :hash_no_attrs)
-
-$stderr.puts "CPU: #{h[:device][:name]}"
 
 # build the peripheral array
 pa = []
@@ -92,9 +96,11 @@ end
 
 require "sequel"
 require 'logger'
+# Memory database for testing
 #DB = Sequel.sqlite(loggers: [Logger.new($stdout)])
-DB = Sequel.sqlite('new_svd.db')
 #DB = Sequel.sqlite
+$output_file = 'new_svd.db'
+DB = Sequel.sqlite($output_file)
 
 def create_db
 	DB.create_table(:mpus) do
@@ -152,11 +158,11 @@ end
 
 
 def populate_db(arr)
-	mpu = Mpu.create(name: MCUNAME)
+	$mpu = Mpu.create(name: $mcuname)
 
 	arr.each do |p|
 		$stderr.puts "Creating Peripheral: #{p[:peripheral]}"
-		px = mpu.add_peripheral(p[:peripheral])
+		px = $mpu.add_peripheral(p[:peripheral])
 		if p[:derived_from].nil?
 			p[:registers].each do |r|
 				#puts "  Creating Register: #{r[:register]}"
@@ -181,15 +187,13 @@ def populate_db(arr)
 
 		end
 	end
-
-	mpu
 end
 
 # pp pa
-mpu = populate_db(pa)
-
-# def dump_db(mpu)
-# 	mpu.peripherals.each do |pe|
+populate_db(pa)
+puts "output databse file is #{$output_file}"
+# def dump_db()
+# 	$mpu.peripherals.each do |pe|
 # 		p pe
 # 		unless pe.derived_from.nil?
 # 			pe= pe.derived_from
@@ -202,4 +206,4 @@ mpu = populate_db(pa)
 # 	end
 # end
 
-# dump_db(mpu)
+# dump_db()
