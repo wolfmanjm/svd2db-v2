@@ -1,4 +1,5 @@
 #!/usr/bin/ruby -w
+require 'bundler/setup'
 require 'ox'
 
 unless ARGV[0].nil?

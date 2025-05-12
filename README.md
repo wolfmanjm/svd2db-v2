@@ -2,10 +2,13 @@ This is based on the excellent [svd2db](https://mecrisp-stellaris-folkdoc.source
 
 I refactored the database to be relational which makes it about 5x smaller.
 
-You need to install ruby if not already installed and the following gems...
+You need to install ruby if not already installed and then run `bundle install`, this is the recommended way to do it.
+
+OR manually install the following gems...
 
 	> gem install --user-install ox
 	> gem install --user-install sqlite3
+	> gem install --user-install sequel
 
 Then to create the database, specify the svd file you want to process...
 
@@ -17,7 +20,7 @@ Once the database has been created you can query it with the `lookup-svd.rb`
 script. There are various output formats, from listing all peripherals, to
 listing all registers for a specified peripheral.
 
-You can also create `.equ` for assembly code for the register and bitfields in that register, or cretae forth register files (usually used in mecrisp forth).
+You can also create `.equ` for assembly code for the register and bitfields in that register, or create forth register files (usually used in mecrisp forth).
 
 	Usage: lookup-svd.rb [options]
 	    -v, --[no-]verbose               Run verbosely

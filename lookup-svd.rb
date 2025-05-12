@@ -1,4 +1,5 @@
 #!/usr/bin/ruby
+require 'bundler/setup'
 require "sequel"
 require 'logger'
 require 'optparse'
@@ -44,7 +45,7 @@ OptionParser.new do |opts|
   end
 
   opts.on("-p", "--peripheral PERIPHERAL", "search for this peripheral") do |v|
-    options[:peripheral] = v
+    options[:peripheral] = v.upcase
   end
 
   opts.on("-r", "--register REGISTER", "search for this register") do |v|
