@@ -32,8 +32,14 @@ OptionParser.new do |opts|
     options[:list_registers] = v
   end
 
-  opts.on("--asm", "generate asm output") do |v|
+  opts.on("--asm", "generate asm output for specified register") do |v|
     options[:asm] = v
+  end
+
+  opts.on("--asm-all", "generate asm output for all registers") do |v|
+    options[:asm] = v
+    options[:asm_all] = v
+    options[:register] = '%'
   end
 
   opts.on("--forth", "generate forth output") do |v|
@@ -181,45 +187,10 @@ if options[:peripheral].nil?
 	exit
 end
 
-# create equ's for given peripheral and register
-if options[:asm]
-	if options[:register].nil?
-		puts "register required"
-		exit
-	end
-
-	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
-	if pr.nil?
-		puts "Unknown peripheral #{options[:peripheral]}"
-		exit
-	end
-
-	puts ".equ #{pr.name}_BASE, #{pr.base_address}"
-
-	res = pr.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
-	if res.count == 0
- 		if pr.derived_from.nil?
-			puts "No match for the register #{options[:register]}"
-			exit
- 		else
- 			res= pr.derived_from.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
- 			puts "@ Has the same registers as #{pr.derived_from.name}"
- 		end
- 		if res.nil? or res.count == 0
- 			puts "@ no matching registers to #{options[:register]}"
- 			exit
- 		end
-	end
-	if res.count > 1
-		puts "more than one match for the register..."
-		res.each { |r| puts r.name }
-		exit
-	end
-
-	res = res.first
-	puts "  .equ _#{res.name}, #{res.address_offset}"
-	res.fields_dataset.order(:bit_offset).each do |f|
-		bf = "#{res.name}_#{f.name}"
+def asm_register_output(mpu, pr, reg)
+	puts "  .equ _#{reg.name}, #{reg.address_offset}"
+	reg.fields_dataset.order(:bit_offset).each do |f|
+		bf = "#{reg.name}_#{f.name}"
         if f.num_bits == 1
 			puts "    .equ b_#{bf}, #{f.num_bits}<<#{f.bit_offset}"
         else
@@ -228,8 +199,55 @@ if options[:asm]
 			puts "    .equ o_#{bf}, #{f.bit_offset}"
         end
 	end
+end
 
-	exit
+# create equ's for given peripheral and register
+if options[:asm]
+	if options[:register].nil?
+		puts "register required"
+		exit 1
+	end
+
+	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	if pr.nil?
+		puts "Unknown peripheral #{peripheral}"
+		exit 1
+	end
+
+	res = pr.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
+	if res.count == 0
+ 		if pr.derived_from.nil?
+			puts "No match for the register #{options[:register]}"
+			exit 1
+ 		else
+ 			res= pr.derived_from.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
+ 			puts "@ Has the same registers as #{pr.derived_from.name}"
+ 		end
+ 		if res.nil? or res.count == 0
+ 			puts "@ no matching registers to #{options[:register]}"
+ 			exit 1
+ 		end
+	end
+
+	if options[:asm_all]
+		puts ".equ #{pr.name}_BASE, #{pr.base_address}"
+		res.each do |reg|
+			asm_register_output(mpu, pr, reg)
+		end
+
+	else
+		if res.count > 1
+			puts "more than one match for the register..."
+			res.each { |r| puts r.name }
+			exit 1
+		end
+
+		puts ".equ #{pr.name}_BASE, #{pr.base_address}"
+		reg = res.first
+		asm_register_output(mpu, pr, reg)
+	end
+
+	exit 0
 end
 
 # create the register structure for forth
