@@ -276,7 +276,7 @@ if options[:forthconst]
 	prefix = pr.name.downcase[0..2]
 
 	regs.each do |r|
-		a = r.address_offset.to_i(16)
+		a = r.address_offset
 		puts "  #{pr.name} $#{a} + constant #{prefix}_#{r.name}"
 	end
 
