@@ -42,8 +42,12 @@ OptionParser.new do |opts|
     options[:register] = '%'
   end
 
-  opts.on("--forth", "generate forth output") do |v|
-    options[:forth] = v
+  opts.on("--forth-reg", "generate forth output using reg") do |v|
+    options[:forthreg] = v
+  end
+
+  opts.on("--forth-const", "generate forth output using constant") do |v|
+    options[:forthconst] = v
   end
 
   opts.on("-d", "--database FILENAME", "Use this database [otherwise opens a default]") do |v|
@@ -250,8 +254,55 @@ if options[:asm]
 	exit 0
 end
 
+# create the constant version for forth
+if options[:forthconst]
+	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	if pr.nil?
+		puts "\\ Unknown peripheral #{options[:peripheral]}"
+		exit
+	end
+
+	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}"
+	regs = pr.registers_dataset
+	if regs.count == 0
+		if pr.derived_from.nil?
+			puts "\\ No registers found for #{options[:peripheral]} Base address: #{pr.base_address}."
+ 		else
+ 			puts "\\ Has the same registers as #{pr.derived_from.name}"
+ 		end
+			exit
+	end
+
+	prefix = pr.name.downcase[0..2]
+
+	regs.each do |r|
+		a = r.address_offset.to_i(16)
+		puts "  #{pr.name} $#{a} + constant #{prefix}_#{r.name}"
+	end
+
+	# create constants for the bit fields
+	# m_ use with modify-reg ( value mask pos reg -- )
+	# ie 5 m_CR2_TSER SPI1 _spCR2 modify-reg
+	# b_ use either bic! or bis!
+	# ie b_CR1_SSI SPI2 _sCR1 bis!
+	regs.each do |r|
+		puts "\n\\ Bitfields for #{prefix}_#{r.name}"
+		r.fields_dataset.order(:name).each do |f|
+			bf = "#{prefix}_#{r.name}_#{f.name}"
+	        if f.num_bits == 1
+				puts "  #{f.bit_offset} bit constant b_#{bf}"
+	        else
+	            mask = ((2**f.num_bits) - 1) << f.bit_offset
+				puts "  $#{sprintf("%08X", mask)} #{f.bit_offset} 2constant m_#{bf}"
+	        end
+		end
+	end
+
+	exit
+end
+
 # create the register structure for forth
-if options[:forth]
+if options[:forthreg]
 	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
 	if pr.nil?
 		puts "\\ Unknown peripheral #{options[:peripheral]}"
