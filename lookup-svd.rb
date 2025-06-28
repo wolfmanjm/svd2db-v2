@@ -262,7 +262,7 @@ if options[:forthconst]
 		exit
 	end
 
-	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}"
+	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}_BASE"
 	regs = pr.registers_dataset
 	if regs.count == 0
 		if pr.derived_from.nil?
@@ -276,8 +276,8 @@ if options[:forthconst]
 	prefix = pr.name.downcase[0..2]
 
 	regs.each do |r|
-		a = r.address_offset
-		puts "  #{pr.name} $#{a} + constant #{prefix}_#{r.name}"
+		a = r.address_offset.sub('0x', '$')
+		puts "  #{pr.name}_BASE #{a} + constant #{prefix}_#{r.name}"
 	end
 
 	# create constants for the bit fields
@@ -287,10 +287,10 @@ if options[:forthconst]
 	# ie b_CR1_SSI SPI2 _sCR1 bis!
 	regs.each do |r|
 		puts "\n\\ Bitfields for #{prefix}_#{r.name}"
-		r.fields_dataset.order(:name).each do |f|
+		r.fields_dataset.order(:bit_offset).each do |f|
 			bf = "#{prefix}_#{r.name}_#{f.name}"
 	        if f.num_bits == 1
-				puts "  #{f.bit_offset} bit constant b_#{bf}"
+				puts "  1 #{f.bit_offset} lshift constant b_#{bf}"
 	        else
 	            mask = ((2**f.num_bits) - 1) << f.bit_offset
 				puts "  $#{sprintf("%08X", mask)} #{f.bit_offset} 2constant m_#{bf}"
