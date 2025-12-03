@@ -55,7 +55,7 @@ OptionParser.new do |opts|
   end
 
   opts.on("-p", "--peripheral PERIPHERAL", "search for this peripheral") do |v|
-    options[:peripheral] = v.upcase
+    options[:peripheral] = v
   end
 
   opts.on("-r", "--register REGISTER", "search for this register") do |v|
@@ -160,7 +160,8 @@ if options[:list_registers]
 		exit
 	end
 	puts "MPU: #{mpu.name}, Registers for #{options[:peripheral]}:"
-	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	# pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	pr = mpu.peripherals_dataset.first(Sequel.ilike(:name, options[:peripheral]))
 	if pr.nil?
 		puts "Unknown peripheral #{options[:peripheral]}"
 		exit
@@ -212,7 +213,7 @@ if options[:asm]
 		exit 1
 	end
 
-	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	pr = mpu.peripherals_dataset.first(Sequel.ilike(:name, options[:peripheral]))
 	if pr.nil?
 		puts "Unknown peripheral #{peripheral}"
 		exit 1
@@ -256,7 +257,7 @@ end
 
 # create the constant version for forth
 if options[:forthconst]
-	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	pr = mpu.peripherals_dataset.first(Sequel.ilike(:name, options[:peripheral]))
 	if pr.nil?
 		puts "\\ Unknown peripheral #{options[:peripheral]}"
 		exit
@@ -292,7 +293,7 @@ if options[:forthconst]
 	        if f.num_bits == 1
 				puts "  1 #{f.bit_offset} lshift constant b_#{bf}"
 	        else
-	            mask = ((2**f.num_bits) - 1) << f.bit_offset
+	            mask = ((2**f.num_bits) - 1)
 				puts "  $#{sprintf("%08X", mask)} #{f.bit_offset} 2constant m_#{bf}"
 	        end
 		end
@@ -303,7 +304,7 @@ end
 
 # create the register structure for forth
 if options[:forthreg]
-	pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+	pr = mpu.peripherals_dataset.first(Sequel.ilike(:name, options[:peripheral]))
 	if pr.nil?
 		puts "\\ Unknown peripheral #{options[:peripheral]}"
 		exit
@@ -362,7 +363,7 @@ end
 
 
 # just list all the fields
-pr = mpu.peripherals_dataset.where(name: options[:peripheral]).first
+pr = mpu.peripherals_dataset.first(Sequel.ilike(:name, options[:peripheral]))
 if pr.nil?
 	puts "Unknown peripheral #{options[:peripheral]}"
 	exit
