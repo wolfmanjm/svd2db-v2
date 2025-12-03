@@ -402,8 +402,9 @@ res.each do |r|
 			desc = ''
 		end
 
+		mask = sprintf("%08X", (2**f.num_bits) - 1 << f.bit_offset)
 		bf = "#{r.name}_#{f.name}"
-		puts " #{bf}: number bits #{f.num_bits}, bit offset: #{f.bit_offset} #{desc}"
+		puts " #{bf}: number bits #{f.num_bits}, bit offset: #{f.bit_offset}, mask: #{mask} #{desc}"
 	end
 end
 
