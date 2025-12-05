@@ -264,7 +264,18 @@ if options[:forthconst]
 	end
 
 	puts "#{pr.base_address.sub('0x', '$')} constant #{pr.name}_BASE"
-	regs = pr.registers_dataset
+
+	# filter the regs if a reg is specified
+	unless options[:register].nil?
+		regs = pr.registers_dataset.where(Sequel.ilike(:name, "%#{options[:register]}"))
+		if regs.count == 0
+			puts "\\ No registers matching #{options[:register]} found for #{options[:peripheral]} Base address: #{pr.base_address}."
+			exit
+		end
+	else
+		regs = pr.registers_dataset
+	end
+
 	if regs.count == 0
 		if pr.derived_from.nil?
 			puts "\\ No registers found for #{options[:peripheral]} Base address: #{pr.base_address}."
