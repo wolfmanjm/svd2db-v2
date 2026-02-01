@@ -1,3 +1,7 @@
+I have archived this as I rewrote the tool in Go here https://github.com/wolfmanjm/svd_lookup
+
+-----
+
 This is based on the excellent [svd2db](https://mecrisp-stellaris-folkdoc.sourceforge.io/svd2db-v1.html) by Terry Porter.
 
 I refactored the database to be relational which makes it about 5x smaller.
